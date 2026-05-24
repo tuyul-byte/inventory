@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Inventory App - Clean Sidebar</title>
+    <meta name="theme-color" content="#4361ee" id="theme-color-meta">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Inventory">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* CSS Variables */
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3a56d4;
+            --primary-light: #eef2ff;
+            --secondary: #7209b7;
+            --accent: #f72585;
+            --success: #06d6a0;
+            --warning: #ff9f1c;
+            --danger: #ef476f;
+            --bg-main: #f8f9fa;
+            --bg-card: #ffffff;
+            --bg-sidebar: #ffffff;
+            --text-primary: #212529;
+            --text-secondary: #6c757d;
+            --border: #e9ecef;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+            --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 20px;
+            --transition: all 0.3s ease;
+            --sidebar-width: 280px;
+        }
+
+        body.dark-mode {
+            --bg-main: #12121a;
+            --bg-card: #1e1e2a;
+            --bg-sidebar: #1e1e2a;
+            --text-primary: #eeeeee;
+            --text-secondary: #8a8a98;
+            --border: #2a2a36;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-main);
+            color: var(--text-primary);
+            transition: var(--transition);
+            overflow-x: hidden;
+        }
+
+        .app-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: var(--bg-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        @media (orientation: landscape) {
+            .app-container {
+                max-width: 100%;
+            }
+            .data-table th, .data-table td {
+                padding: 8px 6px;
+                font-size: 12px;
+            }
+            .stats-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        /* ========== SIDEBAR STYLES ========== */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            z-index: 998;
+            opacity: 0;
+            visibility: hidden;
+            transition: var(--transition);
+        }
+        .sidebar-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -100%;
+            width: var(--sidebar-width);
+            max-width: 85%;
+            height: 100%;
+            background: var(--bg-sidebar);
+            z-index: 999;
+            transition: var(--transition);
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        .sidebar.active {
+            left: 0;
+        }
+        .sidebar-header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            padding: 32px 24px;
+            color: white;
+            text-align: center;
+        }
+        .sidebar-header .logo {
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+        }
+        .sidebar-header h2 {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        .sidebar-header p {
+            font-size: 0.7rem;
+            opacity: 0.8;
+            margin-top: 4px;
+        }
+        .sidebar-menu {
+            flex: 1;
+            padding: 20px 0;
+        }
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            padding: 14px 24px;
+            margin: 4px 12px;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: var(--transition);
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+        .sidebar-item:hover {
+            background: var(--border);
+        }
+        .sidebar-item.active {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+        .sidebar-item .label {
+            font-size: 1rem;
+            font-weight: 500;
+        }
+        .sidebar-footer {
+            padding: 20px 24px;
+            border-top: 1px solid var(--border);
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        /* ========== HEADER STYLES ========== */
+        .gradient-header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-sm);
+        }
+        .menu-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            font-size: 1.4rem;
+            cursor: pointer;
+            width: 44px;
+            height: 44px;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            backdrop-filter: blur(4px);
+        }
+        .menu-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.02);
+        }
+        .gradient-header h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            text-align: center;
+            letter-spacing: -0.3px;
+            flex: 1;
+        }
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .add-btn, .export-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            backdrop-filter: blur(4px);
+        }
+        .add-btn:hover, .export-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.02);
+        }
+        .placeholder-btn {
+            width: 44px;
+            height: 44px;
+            visibility: hidden;
+        }
+
+        main {
+            flex: 1;
+            padding: 20px;
+            overflow-x: auto;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+        .stat-card {
+            background: var(--bg-card);
+            padding: 18px 16px;
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+            border: 1px solid var(--border);
+        }
+        .stat-icon {
+            font-size: 2.2rem;
+        }
+        .stat-info h3 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+        .stat-info p {
+            font-size: 1.6rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            line-height: 1.2;
+        }
+
+        /* Table */
+        .table-responsive {
+            overflow-x: auto;
+            border-radius: var(--radius-md);
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-card);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+        .data-table th {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 14px 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .data-table td {
+            padding: 12px 10px;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.85rem;
+            white-space: nowrap;
+            color: var(--text-primary);
+        }
+        .data-table tr:hover {
+            background: var(--border);
+        }
+        .action-btn {
+            cursor: pointer;
+            background: none;
+            border: none;
+            font-size: 1rem;
+            padding: 6px;
+            border-radius: 8px;
+            transition: var(--transition);
+            color: var(--text-primary);
+        }
+        .action-btn:hover {
+            background: var(--border);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: var(--bg-card);
+            padding: 24px;
+            border-radius: var(--radius-lg);
+            width: 90%;
+            max-width: 500px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+        }
+        .modal-content input, .modal-content select {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--bg-main);
+            transition: var(--transition);
+            color: var(--text-primary);
+        }
+        .modal-content input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px var(--primary-light);
+        }
+        .modal-content button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            margin-top: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .close {
+            float: right;
+            font-size: 28px;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        /* Settings Panel */
+        .settings-section {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            box-shadow: var(--shadow-sm);
+        }
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .setting-divider {
+            margin: 24px 0 16px;
+            padding-top: 16px;
+            border-top: 2px solid var(--border);
+        }
+        .setting-divider h3 {
+            font-size: 0.9rem;
+            color: var(--primary);
+            font-weight: 600;
+        }
+        .color-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-top: 12px;
+        }
+        .color-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .color-label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            min-width: 100px;
+        }
+        .color-input {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .color-input input[type="color"] {
+            width: 50px;
+            height: 40px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            background: var(--bg-card);
+        }
+        .color-input span {
+            font-size: 0.75rem;
+            font-family: monospace;
+            color: var(--text-secondary);
+        }
+        .preset-colors {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 16px 0;
+        }
+        .preset-btn {
+            padding: 8px 16px;
+            border-radius: 30px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: var(--transition);
+            color: white;
+        }
+        .gradient-preview {
+            width: 100%;
+            height: 60px;
+            border-radius: var(--radius-md);
+            margin: 12px 0;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+        }
+        .danger-btn {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-weight: 500;
+        }
+        .secondary-btn {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-weight: 500;
+        }
+        .info-app {
+            text-align: center;
+            margin-top: 28px;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+        }
+        .recent-section {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            box-shadow: var(--shadow-sm);
+        }
+        .recent-item {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.85rem;
+            color: var(--text-primary);
+        }
+
+        /* Splash Screen */
+        .splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            transition: opacity 0.5s ease;
+        }
+        .splash-content {
+            text-align: center;
+            color: white;
+            animation: fadeInUp 0.6s ease;
+        }
+        .splash-content h1 {
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+        .loader {
+            width: 44px;
+            height: 44px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 24px auto;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+    // ==================== DATA STORAGE ====================
+    const STORAGE_KEYS = {
+        BARANG_MASUK: 'barangMasuk',
+        BARANG_KELUAR: 'barangKeluar',
+        KONSUMABEL: 'konsumabel',
+        DARK_MODE: 'darkMode',
+        COLOR_PRIMARY: 'colorPrimary',
+        COLOR_SECONDARY: 'colorSecondary',
+        COLOR_ACCENT: 'colorAccent',
+        COLOR_BG_MAIN: 'colorBgMain',
+        COLOR_BG_CARD: 'colorBgCard',
+        COLOR_TEXT: 'colorText'
+    };
+
+    const sampleBarangMasuk = [
+        { id: 1, tanggal: '2025-01-20', jam: '09:30', namaBarang: 'Laptop', supplier: 'PT Maju Jaya', noPo: 'PO001', noSj: 'SJ001', jumlah: 10, satuan: 'unit', keterangan: 'Barang baru', pic: 'Budi' }
+    ];
+    const sampleBarangKeluar = [
+        { id: 1, tanggal: '2025-01-21', jam: '14:00', namaBarang: 'Mouse', ekspedisi: 'JNE', jumlah: 5, satuan: 'pcs', keterangan: 'Pengiriman customer', user: 'Admin', pic: 'Ani' }
+    ];
+    const sampleKonsumabel = [
+        { id: 1, tanggal: '2025-01-19', namaBarang: 'Tinta Printer', jumlah: 20, satuan: 'botol', user: 'Staff', pic: 'Rudi' }
+    ];
+
+    const colorPresets = {
+        'Biru Modern': { primary: '#4361ee', secondary: '#7209b7', accent: '#f72585' },
+        'Hijau Segar': { primary: '#06d6a0', secondary: '#00b4d8', accent: '#ff9f1c' },
+        'Merah Berani': { primary: '#ef476f', secondary: '#fb8500', accent: '#06d6a0' },
+        'Ungu Mewah': { primary: '#7209b7', secondary: '#f72585', accent: '#4361ee' },
+        'Oranye Hangat': { primary: '#fb8500', secondary: '#ffb703', accent: '#ef476f' },
+        'Toska Segar': { primary: '#00b4d8', secondary: '#06d6a0', accent: '#ff9f1c' },
+        'Pastel Pink': { primary: '#ff8fa3', secondary: '#f9bec7', accent: '#800f2f' },
+        'Hitam Elegan': { primary: '#2b2d42', secondary: '#8d99ae', accent: '#ef233c' }
+    };
+
+    function initData() {
+        if (!localStorage.getItem(STORAGE_KEYS.BARANG_MASUK)) localStorage.setItem(STORAGE_KEYS.BARANG_MASUK, JSON.stringify(sampleBarangMasuk));
+        if (!localStorage.getItem(STORAGE_KEYS.BARANG_KELUAR)) localStorage.setItem(STORAGE_KEYS.BARANG_KELUAR, JSON.stringify(sampleBarangKeluar));
+        if (!localStorage.getItem(STORAGE_KEYS.KONSUMABEL)) localStorage.setItem(STORAGE_KEYS.KONSUMABEL, JSON.stringify(sampleKonsumabel));
+        if (!localStorage.getItem(STORAGE_KEYS.DARK_MODE)) localStorage.setItem(STORAGE_KEYS.DARK_MODE, 'false');
+        if (!localStorage.getItem(STORAGE_KEYS.COLOR_PRIMARY)) localStorage.setItem(STORAGE_KEYS.COLOR_PRIMARY, '#4361ee');
+        if (!localStorage.getItem(STORAGE_KEYS.COLOR_SECONDARY)) localStorage.setItem(STORAGE_KEYS.COLOR_SECONDARY, '#7209b7');
+        if (!localStorage.getItem(STORAGE_KEYS.COLOR_ACCENT)) localStorage.setItem(STORAGE_KEYS.COLOR_ACCENT, '#f72585');
+        if (!localStorage.getItem(STORAGE_KEYS.COLOR_BG_MAIN)) localStorage.setItem(STORAGE_KEYS.COLOR_BG_MAIN, '#f8f9fa');
+        if (!localStorage.getItem(STORAGE_KEYS.COLOR_BG_CARD)) localStorage.setItem(STORAGE_KEYS.COLOR_BG_CARD, '#ffffff');
+        if (!localStorage.getItem(STORAGE_KEYS.COLOR_TEXT)) localStorage.setItem(STORAGE_KEYS.COLOR_TEXT, '#212529');
+    }
+
+    function getBarangMasuk() { return JSON.parse(localStorage.getItem(STORAGE_KEYS.BARANG_MASUK)) || []; }
+    function getBarangKeluar() { return JSON.parse(localStorage.getItem(STORAGE_KEYS.BARANG_KELUAR)) || []; }
+    function getKonsumabel() { return JSON.parse(localStorage.getItem(STORAGE_KEYS.KONSUMABEL)) || []; }
+    function saveBarangMasuk(data) { localStorage.setItem(STORAGE_KEYS.BARANG_MASUK, JSON.stringify(data)); }
+    function saveBarangKeluar(data) { localStorage.setItem(STORAGE_KEYS.BARANG_KELUAR, JSON.stringify(data)); }
+    function saveKonsumabel(data) { localStorage.setItem(STORAGE_KEYS.KONSUMABEL, JSON.stringify(data)); }
+    function generateId(items) { return items.length > 0 ? Math.max(...items.map(i => i.id)) + 1 : 1; }
+    function exportAllData() { return JSON.stringify({ barangMasuk: getBarangMasuk(), barangKeluar: getBarangKeluar(), konsumabel: getKonsumabel() }, null, 2); }
+    function importAllData(jsonData) { try { const data = JSON.parse(jsonData); if (data.barangMasuk) saveBarangMasuk(data.barangMasuk); if (data.barangKeluar) saveBarangKeluar(data.barangKeluar); if (data.konsumabel) saveKonsumabel(data.konsumabel); return true; } catch(e) { return false; } }
+    function clearAllData() { if (confirm('Hapus semua data?')) { localStorage.removeItem(STORAGE_KEYS.BARANG_MASUK); localStorage.removeItem(STORAGE_KEYS.BARANG_KELUAR); localStorage.removeItem(STORAGE_KEYS.KONSUMABEL); initData(); return true; } return false; }
+
+    // ==================== THEME MANAGEMENT ====================
+    function applyTheme() {
+        const primary = localStorage.getItem(STORAGE_KEYS.COLOR_PRIMARY) || '#4361ee';
+        const secondary = localStorage.getItem(STORAGE_KEYS.COLOR_SECONDARY) || '#7209b7';
+        const accent = localStorage.getItem(STORAGE_KEYS.COLOR_ACCENT) || '#f72585';
+        const bgMain = localStorage.getItem(STORAGE_KEYS.COLOR_BG_MAIN) || '#f8f9fa';
+        const bgCard = localStorage.getItem(STORAGE_KEYS.COLOR_BG_CARD) || '#ffffff';
+        const text = localStorage.getItem(STORAGE_KEYS.COLOR_TEXT) || '#212529';
+
+        document.documentElement.style.setProperty('--primary', primary);
+        document.documentElement.style.setProperty('--secondary', secondary);
+        document.documentElement.style.setProperty('--accent', accent);
+        document.documentElement.style.setProperty('--bg-main', bgMain);
+        document.documentElement.style.setProperty('--bg-card', bgCard);
+        document.documentElement.style.setProperty('--text-primary', text);
+        document.getElementById('theme-color-meta')?.setAttribute('content', primary);
+        const splash = document.querySelector('.splash-screen');
+        if (splash) splash.style.background = `linear-gradient(135deg, ${primary}, ${secondary})`;
+    }
+
+    function setThemeColor(colorKey, value) {
+        localStorage.setItem(colorKey, value);
+        applyTheme();
+        render();
+    }
+
+    function applyPreset(presetName) {
+        const preset = colorPresets[presetName];
+        if (preset) {
+            localStorage.setItem(STORAGE_KEYS.COLOR_PRIMARY, preset.primary);
+            localStorage.setItem(STORAGE_KEYS.COLOR_SECONDARY, preset.secondary);
+            localStorage.setItem(STORAGE_KEYS.COLOR_ACCENT, preset.accent);
+            applyTheme();
+            render();
+        }
+    }
+
+    function resetToDefault() {
+        localStorage.setItem(STORAGE_KEYS.COLOR_PRIMARY, '#4361ee');
+        localStorage.setItem(STORAGE_KEYS.COLOR_SECONDARY, '#7209b7');
+        localStorage.setItem(STORAGE_KEYS.COLOR_ACCENT, '#f72585');
+        localStorage.setItem(STORAGE_KEYS.COLOR_BG_MAIN, '#f8f9fa');
+        localStorage.setItem(STORAGE_KEYS.COLOR_BG_CARD, '#ffffff');
+        localStorage.setItem(STORAGE_KEYS.COLOR_TEXT, '#212529');
+        localStorage.setItem(STORAGE_KEYS.DARK_MODE, 'false');
+        applyTheme();
+        applyDarkMode();
+        render();
+    }
+
+    function applyDarkMode() {
+        if (localStorage.getItem(STORAGE_KEYS.DARK_MODE) === 'true') {
+            document.body.classList.add('dark-mode');
+        } else {
+            document.body.classList.remove('dark-mode');
+        }
+    }
+
+    // ==================== EXPORT EXCEL ====================
+    function exportToExcel(data, columns, sheetName, fileName) {
+        if (!data || data.length === 0) { alert('Tidak ada data untuk diexport!'); return; }
+        const worksheetData = [columns.map(col => col.header), ...data.map(row => columns.map(col => row[col.key] !== undefined && row[col.key] !== null ? row[col.key] : '-'))];
+        const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+        ws['!cols'] = columns.map(() => ({ wch: 15 }));
+        XLSX.writeFile(wb, `${fileName}_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.xlsx`);
+    }
+
+    // ==================== STATE ====================
+    let currentPage = 'dashboard';
+    let editId = null;
+    let currentFormType = 'masuk';
+    let isSidebarOpen = false;
+
+    function toggleSidebar() {
+        isSidebarOpen = !isSidebarOpen;
+        const overlay = document.getElementById('sidebarOverlay');
+        const sidebar = document.getElementById('sidebar');
+        if (isSidebarOpen) {
+            overlay.classList.add('active');
+            sidebar.classList.add('active');
+        } else {
+            overlay.classList.remove('active');
+            sidebar.classList.remove('active');
+        }
+    }
+
+    function closeSidebar() {
+        isSidebarOpen = false;
+        document.getElementById('sidebarOverlay')?.classList.remove('active');
+        document.getElementById('sidebar')?.classList.remove('active');
+    }
+
+    function navigateTo(page) {
+        currentPage = page;
+        closeSidebar();
+        render();
+    }
+
+    // ==================== RENDER FUNCTIONS ====================
+    function render() {
+        const app = document.getElementById('app');
+        if (currentPage === 'dashboard') renderDashboard(app);
+        else if (currentPage === 'barang-masuk') renderBarangMasuk(app);
+        else if (currentPage === 'barang-keluar') renderBarangKeluar(app);
+        else if (currentPage === 'konsumabel') renderKonsumabel(app);
+        else if (currentPage === 'pengaturan') renderPengaturan(app);
+        applyTheme();
+    }
+
+    function renderSidebar() {
+        const menuItems = [
+            { page: 'dashboard', label: 'Dashboard' },
+            { page: 'barang-masuk', label: 'Barang Masuk' },
+            { page: 'barang-keluar', label: 'Barang Keluar' },
+            { page: 'konsumabel', label: 'Konsumabel' },
+            { page: 'pengaturan', label: 'Pengaturan' }
+        ];
+        return `
+            <div id="sidebarOverlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
+            <div id="sidebar" class="sidebar">
+                <div class="sidebar-header">
+                    <div class="logo">📦</div>
+                    <h2>Inventory App</h2>
+                    <p>Sistem Manajemen Barang</p>
+                </div>
+                <div class="sidebar-menu">
+                    ${menuItems.map(item => `
+                        <div class="sidebar-item ${currentPage === item.page ? 'active' : ''}" onclick="navigateTo('${item.page}')">
+                            <span class="label">${item.label}</span>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="sidebar-footer">
+                    <p>Versi 1.0.0</p>
+                    <p>© 2025 Inventory App</p>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderDashboard(container) {
+        const barangMasuk = getBarangMasuk();
+        const barangKeluar = getBarangKeluar();
+        const konsumabel = getKonsumabel();
+        const totalMasuk = barangMasuk.reduce((s, i) => s + i.jumlah, 0);
+        const totalKeluar = barangKeluar.reduce((s, i) => s + i.jumlah, 0);
+        const totalKonsumabel = konsumabel.reduce((s, i) => s + i.jumlah, 0);
+        
+        const allActivities = [
+            ...barangMasuk.slice(-5).map(i => ({ ...i, type: '📥 Masuk', date: i.tanggal })),
+            ...barangKeluar.slice(-5).map(i => ({ ...i, type: '📤 Keluar', date: i.tanggal })),
+            ...konsumabel.slice(-5).map(i => ({ ...i, type: '🔧 Konsumabel', date: i.tanggal }))
+        ].sort((a,b) => b.date.localeCompare(a.date)).slice(0,10);
+
+        container.innerHTML = `
+            ${renderSidebar()}
+            <div class="app-container">
+                <div class="gradient-header">
+                    <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+                    <h1>Dashboard</h1>
+                    <div class="placeholder-btn"></div>
+                </div>
+                <main>
+                    <div class="stats-grid">
+                        <div class="stat-card"><div class="stat-icon">📥</div><div class="stat-info"><h3>Barang Masuk</h3><p>${totalMasuk}</p></div></div>
+                        <div class="stat-card"><div class="stat-icon">📤</div><div class="stat-info"><h3>Barang Keluar</h3><p>${totalKeluar}</p></div></div>
+                        <div class="stat-card"><div class="stat-icon">🔧</div><div class="stat-info"><h3>Konsumabel</h3><p>${totalKonsumabel}</p></div></div>
+                    </div>
+                    <div class="recent-section"><h2>📋 Aktivitas Terbaru</h2><div class="recent-list">${allActivities.map(act => `<div class="recent-item">${act.type}: ${act.namaBarang} (${act.jumlah} ${act.satuan}) - ${act.date}</div>`).join('')}</div></div>
+                </main>
+            </div>
+        `;
+    }
+
+    function renderBarangMasuk(container) {
+        const data = getBarangMasuk();
+        container.innerHTML = `
+            ${renderSidebar()}
+            <div class="app-container">
+                <div class="gradient-header">
+                    <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+                    <h1>Barang Masuk</h1>
+                    <div class="header-actions">
+                        <button class="export-btn" id="exportBtn">📎</button>
+                        <button class="add-btn" id="addBtn">+</button>
+                    </div>
+                </div>
+                <main><div class="table-responsive"><table class="data-table"><thead><tr><th>Tanggal</th><th>Jam</th><th>Nama Barang</th><th>Supplier</th><th>No PO</th><th>No SJ</th><th>Jumlah</th><th>Satuan</th><th>Keterangan</th><th>PIC</th><th>Aksi</th></tr></thead><tbody>${data.map(item => `
+                    <tr><td>${item.tanggal}</td><td>${item.jam}</td><td>${item.namaBarang}</td><td>${item.supplier}</td><td>${item.noPo || '-'}</td><td>${item.noSj || '-'}</td><td>${item.jumlah}</td><td>${item.satuan}</td><td>${item.keterangan || '-'}</td><td>${item.pic}</td><td><button class="action-btn" onclick="editBarangMasuk(${item.id})">✏️</button> <button class="action-btn" onclick="deleteBarangMasuk(${item.id})">🗑️</button></td></tr>
+                `).join('')}</tbody></table></div></main>
+            </div>
+        `;
+        document.getElementById('exportBtn')?.addEventListener('click', () => {
+            const cols = [{ header: 'Tanggal', key: 'tanggal' },{ header: 'Jam', key: 'jam' },{ header: 'Nama Barang', key: 'namaBarang' },{ header: 'Supplier', key: 'supplier' },{ header: 'No PO', key: 'noPo' },{ header: 'No SJ', key: 'noSj' },{ header: 'Jumlah', key: 'jumlah' },{ header: 'Satuan', key: 'satuan' },{ header: 'Keterangan', key: 'keterangan' },{ header: 'PIC', key: 'pic' }];
+            exportToExcel(getBarangMasuk(), cols, 'Barang Masuk', 'barang_masuk');
+        });
+        document.getElementById('addBtn')?.addEventListener('click', () => showModal('masuk'));
+    }
+
+    function renderBarangKeluar(container) {
+        const data = getBarangKeluar();
+        container.innerHTML = `
+            ${renderSidebar()}
+            <div class="app-container">
+                <div class="gradient-header">
+                    <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+                    <h1>Barang Keluar</h1>
+                    <div class="header-actions">
+                        <button class="export-btn" id="exportBtn">📎</button>
+                        <button class="add-btn" id="addBtn">+</button>
+                    </div>
+                </div>
+                <main><div class="table-responsive"><table class="data-table"><thead><tr><th>Tanggal</th><th>Jam</th><th>Nama Barang</th><th>Ekspedisi</th><th>Jumlah</th><th>Satuan</th><th>Keterangan</th><th>User</th><th>PIC</th><th>Aksi</th></tr></thead><tbody>${data.map(item => `
+                    <tr><td>${item.tanggal}</td><td>${item.jam}</td><td>${item.namaBarang}</td><td>${item.ekspedisi}</td><td>${item.jumlah}</td><td>${item.satuan}</td><td>${item.keterangan || '-'}</td><td>${item.user}</td><td>${item.pic}</td><td><button class="action-btn" onclick="editBarangKeluar(${item.id})">✏️</button> <button class="action-btn" onclick="deleteBarangKeluar(${item.id})">🗑️</button></td></tr>
+                `).join('')}</tbody></table></div></main>
+            </div>
+        `;
+        document.getElementById('exportBtn')?.addEventListener('click', () => {
+            const cols = [{ header: 'Tanggal', key: 'tanggal' },{ header: 'Jam', key: 'jam' },{ header: 'Nama Barang', key: 'namaBarang' },{ header: 'Ekspedisi', key: 'ekspedisi' },{ header: 'Jumlah', key: 'jumlah' },{ header: 'Satuan', key: 'satuan' },{ header: 'Keterangan', key: 'keterangan' },{ header: 'User', key: 'user' },{ header: 'PIC', key: 'pic' }];
+            exportToExcel(getBarangKeluar(), cols, 'Barang Keluar', 'barang_keluar');
+        });
+        document.getElementById('addBtn')?.addEventListener('click', () => showModal('keluar'));
+    }
+
+    function renderKonsumabel(container) {
+        const data = getKonsumabel();
+        container.innerHTML = `
+            ${renderSidebar()}
+            <div class="app-container">
+                <div class="gradient-header">
+                    <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+                    <h1>Konsumabel</h1>
+                    <div class="header-actions">
+                        <button class="export-btn" id="exportBtn">📎</button>
+                        <button class="add-btn" id="addBtn">+</button>
+                    </div>
+                </div>
+                <main><div class="table-responsive"><table class="data-table"><thead><tr><th>Tanggal</th><th>Nama Barang</th><th>Jumlah</th><th>Satuan</th><th>User</th><th>PIC</th><th>Aksi</th></tr></thead><tbody>${data.map(item => `
+                    <tr><td>${item.tanggal}</td><td>${item.namaBarang}</td><td>${item.jumlah}</td><td>${item.satuan}</td><td>${item.user}</td><td>${item.pic}</td><td><button class="action-btn" onclick="editKonsumabel(${item.id})">✏️</button> <button class="action-btn" onclick="deleteKonsumabel(${item.id})">🗑️</button></td></tr>
+                `).join('')}</tbody></table></div></main>
+            </div>
+        `;
+        document.getElementById('exportBtn')?.addEventListener('click', () => {
+            const cols = [{ header: 'Tanggal', key: 'tanggal' },{ header: 'Nama Barang', key: 'namaBarang' },{ header: 'Jumlah', key: 'jumlah' },{ header: 'Satuan', key: 'satuan' },{ header: 'User', key: 'user' },{ header: 'PIC', key: 'pic' }];
+            exportToExcel(getKonsumabel(), cols, 'Konsumabel', 'konsumabel');
+        });
+        document.getElementById('addBtn')?.addEventListener('click', () => showModal('konsumabel'));
+    }
+
+    function renderPengaturan(container) {
+        const isDark = localStorage.getItem(STORAGE_KEYS.DARK_MODE) === 'true';
+        const primary = localStorage.getItem(STORAGE_KEYS.COLOR_PRIMARY) || '#4361ee';
+        const secondary = localStorage.getItem(STORAGE_KEYS.COLOR_SECONDARY) || '#7209b7';
+        const accent = localStorage.getItem(STORAGE_KEYS.COLOR_ACCENT) || '#f72585';
+        const bgMain = localStorage.getItem(STORAGE_KEYS.COLOR_BG_MAIN) || '#f8f9fa';
+        const bgCard = localStorage.getItem(STORAGE_KEYS.COLOR_BG_CARD) || '#ffffff';
+        const text = localStorage.getItem(STORAGE_KEYS.COLOR_TEXT) || '#212529';
+        
+        container.innerHTML = `
+            ${renderSidebar()}
+            <div class="app-container">
+                <div class="gradient-header">
+                    <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+                    <h1>Pengaturan</h1>
+                    <div class="placeholder-btn"></div>
+                </div>
+                <main>
+                    <div class="settings-section">
+                        <div class="setting-item"><label>🌙 Mode Gelap</label><input type="checkbox" id="darkMode" ${isDark ? 'checked' : ''}></div>
+                        
+                        <div class="setting-divider"><h3>🎨 Warna Tema</h3></div>
+                        
+                        <div class="gradient-preview" id="gradientPreview"></div>
+                        
+                        <div class="color-controls">
+                            <div class="color-row">
+                                <span class="color-label">Warna Utama</span>
+                                <div class="color-input">
+                                    <input type="color" id="colorPrimary" value="${primary}">
+                                    <span id="primaryHex">${primary}</span>
+                                </div>
+                            </div>
+                            <div class="color-row">
+                                <span class="color-label">Warna Sekunder</span>
+                                <div class="color-input">
+                                    <input type="color" id="colorSecondary" value="${secondary}">
+                                    <span id="secondaryHex">${secondary}</span>
+                                </div>
+                            </div>
+                            <div class="color-row">
+                                <span class="color-label">Warna Aksen</span>
+                                <div class="color-input">
+                                    <input type="color" id="colorAccent" value="${accent}">
+                                    <span id="accentHex">${accent}</span>
+                                </div>
+                            </div>
+                            <div class="color-row">
+                                <span class="color-label">Background</span>
+                                <div class="color-input">
+                                    <input type="color" id="colorBgMain" value="${bgMain}">
+                                    <span id="bgMainHex">${bgMain}</span>
+                                </div>
+                            </div>
+                            <div class="color-row">
+                                <span class="color-label">Warna Card</span>
+                                <div class="color-input">
+                                    <input type="color" id="colorBgCard" value="${bgCard}">
+                                    <span id="bgCardHex">${bgCard}</span>
+                                </div>
+                            </div>
+                            <div class="color-row">
+                                <span class="color-label">Warna Teks</span>
+                                <div class="color-input">
+                                    <input type="color" id="colorText" value="${text}">
+                                    <span id="textHex">${text}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-divider"><h3>🎯 Preset Warna</h3>
+                            <div class="preset-colors">
+                                ${Object.keys(colorPresets).map(name => `
+                                    <button class="preset-btn" style="background: linear-gradient(135deg, ${colorPresets[name].primary}, ${colorPresets[name].secondary});" onclick="applyPreset('${name}')">${name}</button>
+                                `).join('')}
+                            </div>
+                            <button id="resetTheme" class="secondary-btn" style="background: var(--danger); margin-top: 10px;">Reset ke Default</button>
+                        </div>
+                        
+                        <div class="setting-divider"><h3>📊 Export Data ke Excel</h3></div>
+                        <div class="setting-item"><label>Export Barang Masuk</label><button id="exportMasuk" class="secondary-btn">Download XLSX</button></div>
+                        <div class="setting-item"><label>Export Barang Keluar</label><button id="exportKeluar" class="secondary-btn">Download XLSX</button></div>
+                        <div class="setting-item"><label>Export Konsumabel</label><button id="exportKonsumabel" class="secondary-btn">Download XLSX</button></div>
+                        <div class="setting-item"><label>Export Semua Data</label><button id="exportAll" class="secondary-btn">Download ALL XLSX</button></div>
+                        
+                        <div class="setting-divider"><h3>⚙️ Backup & Restore</h3></div>
+                        <div class="setting-item"><label>Hapus Semua Data</label><button id="clearAll" class="danger-btn">Hapus Semua</button></div>
+                        <div class="setting-item"><label>Ekspor Data (JSON)</label><button id="exportJSON" class="secondary-btn">Ekspor JSON</button></div>
+                        <div class="setting-item"><label>Impor Data (JSON)</label><input type="file" id="importJSON" accept=".json"></div>
+                    </div>
+                    <div class="info-app"><p>Versi 1.0.0</p><p>© 2025 Inventory App</p></div>
+                </main>
+            </div>
+        `;
+
+        const updatePreview = () => {
+            const p = document.getElementById('colorPrimary')?.value || '#4361ee';
+            const s = document.getElementById('colorSecondary')?.value || '#7209b7';
+            const preview = document.getElementById('gradientPreview');
+            if (preview) preview.style.background = `linear-gradient(135deg, ${p}, ${s})`;
+        };
+        
+        document.getElementById('darkMode')?.addEventListener('change', (e) => { 
+            localStorage.setItem(STORAGE_KEYS.DARK_MODE, e.target.checked); 
+            applyDarkMode(); 
+            render(); 
+        });
+        
+        document.getElementById('colorPrimary')?.addEventListener('input', (e) => {
+            setThemeColor(STORAGE_KEYS.COLOR_PRIMARY, e.target.value);
+            document.getElementById('primaryHex').innerText = e.target.value;
+            updatePreview();
+        });
+        document.getElementById('colorSecondary')?.addEventListener('input', (e) => {
+            setThemeColor(STORAGE_KEYS.COLOR_SECONDARY, e.target.value);
+            document.getElementById('secondaryHex').innerText = e.target.value;
+            updatePreview();
+        });
+        document.getElementById('colorAccent')?.addEventListener('input', (e) => {
+            setThemeColor(STORAGE_KEYS.COLOR_ACCENT, e.target.value);
+            document.getElementById('accentHex').innerText = e.target.value;
+        });
+        document.getElementById('colorBgMain')?.addEventListener('input', (e) => {
+            setThemeColor(STORAGE_KEYS.COLOR_BG_MAIN, e.target.value);
+            document.getElementById('bgMainHex').innerText = e.target.value;
+        });
+        document.getElementById('colorBgCard')?.addEventListener('input', (e) => {
+            setThemeColor(STORAGE_KEYS.COLOR_BG_CARD, e.target.value);
+            document.getElementById('bgCardHex').innerText = e.target.value;
+        });
+        document.getElementById('colorText')?.addEventListener('input', (e) => {
+            setThemeColor(STORAGE_KEYS.COLOR_TEXT, e.target.value);
+            document.getElementById('textHex').innerText = e.target.value;
+        });
+        
+        document.getElementById('resetTheme')?.addEventListener('click', resetToDefault);
+        updatePreview();
+        
+        document.getElementById('exportMasuk')?.addEventListener('click', () => { const cols = [{ header: 'Tanggal', key: 'tanggal' },{ header: 'Jam', key: 'jam' },{ header: 'Nama Barang', key: 'namaBarang' },{ header: 'Supplier', key: 'supplier' },{ header: 'No PO', key: 'noPo' },{ header: 'No SJ', key: 'noSj' },{ header: 'Jumlah', key: 'jumlah' },{ header: 'Satuan', key: 'satuan' },{ header: 'Keterangan', key: 'keterangan' },{ header: 'PIC', key: 'pic' }]; exportToExcel(getBarangMasuk(), cols, 'Barang Masuk', 'barang_masuk'); });
+        document.getElementById('exportKeluar')?.addEventListener('click', () => { const cols = [{ header: 'Tanggal', key: 'tanggal' },{ header: 'Jam', key: 'jam' },{ header: 'Nama Barang', key: 'namaBarang' },{ header: 'Ekspedisi', key: 'ekspedisi' },{ header: 'Jumlah', key: 'jumlah' },{ header: 'Satuan', key: 'satuan' },{ header: 'Keterangan', key: 'keterangan' },{ header: 'User', key: 'user' },{ header: 'PIC', key: 'pic' }]; exportToExcel(getBarangKeluar(), cols, 'Barang Keluar', 'barang_keluar'); });
+        document.getElementById('exportKonsumabel')?.addEventListener('click', () => { const cols = [{ header: 'Tanggal', key: 'tanggal' },{ header: 'Nama Barang', key: 'namaBarang' },{ header: 'Jumlah', key: 'jumlah' },{ header: 'Satuan', key: 'satuan' },{ header: 'User', key: 'user' },{ header: 'PIC', key: 'pic' }]; exportToExcel(getKonsumabel(), cols, 'Konsumabel', 'konsumabel'); });
+        document.getElementById('exportAll')?.addEventListener('click', () => {
+            const wb = XLSX.utils.book_new();
+            const dataMasuk = getBarangMasuk();
+            if(dataMasuk.length){ const ws = XLSX.utils.aoa_to_sheet([['Tanggal','Jam','Nama Barang','Supplier','No PO','No SJ','Jumlah','Satuan','Keterangan','PIC'], ...dataMasuk.map(r => [r.tanggal,r.jam,r.namaBarang,r.supplier,r.noPo||'-',r.noSj||'-',r.jumlah,r.satuan,r.keterangan||'-',r.pic])]); XLSX.utils.book_append_sheet(wb, ws, 'Barang Masuk'); }
+            const dataKeluar = getBarangKeluar();
+            if(dataKeluar.length){ const ws = XLSX.utils.aoa_to_sheet([['Tanggal','Jam','Nama Barang','Ekspedisi','Jumlah','Satuan','Keterangan','User','PIC'], ...dataKeluar.map(r => [r.tanggal,r.jam,r.namaBarang,r.ekspedisi,r.jumlah,r.satuan,r.keterangan||'-',r.user,r.pic])]); XLSX.utils.book_append_sheet(wb, ws, 'Barang Keluar'); }
+            const dataKonsumabel = getKonsumabel();
+            if(dataKonsumabel.length){ const ws = XLSX.utils.aoa_to_sheet([['Tanggal','Nama Barang','Jumlah','Satuan','User','PIC'], ...dataKonsumabel.map(r => [r.tanggal,r.namaBarang,r.jumlah,r.satuan,r.user,r.pic])]); XLSX.utils.book_append_sheet(wb, ws, 'Konsumabel'); }
+            if(dataMasuk.length===0 && dataKeluar.length===0 && dataKonsumabel.length===0) alert('Tidak ada data!');
+            else XLSX.writeFile(wb, `all_inventory_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.xlsx`);
+        });
+        document.getElementById('clearAll')?.addEventListener('click', () => { if(clearAllData()) render(); });
+        document.getElementById('exportJSON')?.addEventListener('click', () => { const data = exportAllData(); const blob = new Blob([data], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `inventory_backup_${new Date().toISOString().slice(0,19)}.json`; a.click(); URL.revokeObjectURL(a.href); });
+        document.getElementById('importJSON')?.addEventListener('change', (e) => { const file = e.target.files[0]; if(file){ const reader = new FileReader(); reader.onload = (ev) => { if(importAllData(ev.target.result)) alert('Import berhasil!'); else alert('Gagal import'); render(); }; reader.readAsText(file); } });
+    }
+
+    // ==================== MODAL & CRUD ====================
+    function showModal(type, item = null) {
+        currentFormType = type;
+        editId = item?.id || null;
+        let html = '';
+        if (type === 'masuk') {
+            html = `<div class="modal-content"><span class="close">&times;</span><h3>${editId ? 'Edit' : 'Tambah'} Barang Masuk</h3>
+                <input type="date" id="tanggal" required placeholder="Tanggal" value="${item?.tanggal || ''}">
+                <input type="time" id="jam" required placeholder="Jam" value="${item?.jam || ''}">
+                <input type="text" id="namaBarang" required placeholder="Nama Barang" value="${item?.namaBarang || ''}">
+                <input type="text" id="supplier" required placeholder="Supplier" value="${item?.supplier || ''}">
+                <input type="text" id="noPo" placeholder="No PO" value="${item?.noPo || ''}">
+                <input type="text" id="noSj" placeholder="No SJ" value="${item?.noSj || ''}">
+                <input type="number" id="jumlah" required placeholder="Jumlah" value="${item?.jumlah || ''}">
+                <input type="text" id="satuan" required placeholder="Satuan" value="${item?.satuan || ''}">
+                <input type="text" id="keterangan" placeholder="Keterangan" value="${item?.keterangan || ''}">
+                <input type="text" id="pic" required placeholder="PIC" value="${item?.pic || ''}">
+                <button id="saveBtn">Simpan</button></div>`;
+        } else if (type === 'keluar') {
+            html = `<div class="modal-content"><span class="close">&times;</span><h3>${editId ? 'Edit' : 'Tambah'} Barang Keluar</h3>
+                <input type="date" id="tanggal" required value="${item?.tanggal || ''}">
+                <input type="time" id="jam" required value="${item?.jam || ''}">
+                <input type="text" id="namaBarang" required placeholder="Nama Barang" value="${item?.namaBarang || ''}">
+                <input type="text" id="ekspedisi" required placeholder="Ekspedisi" value="${item?.ekspedisi || ''}">
+                <input type="number" id="jumlah" required placeholder="Jumlah" value="${item?.jumlah || ''}">
+                <input type="text" id="satuan" required placeholder="Satuan" value="${item?.satuan || ''}">
+                <input type="text" id="keterangan" placeholder="Keterangan" value="${item?.keterangan || ''}">
+                <input type="text" id="user" required placeholder="User" value="${item?.user || ''}">
+                <input type="text" id="pic" required placeholder="PIC" value="${item?.pic || ''}">
+                <button id="saveBtn">Simpan</button></div>`;
+        } else {
+            html = `<div class="modal-content"><span class="close">&times;</span><h3>${editId ? 'Edit' : 'Tambah'} Konsumabel</h3>
+                <input type="date" id="tanggal" required value="${item?.tanggal || ''}">
+                <input type="text" id="namaBarang" required placeholder="Nama Barang" value="${item?.namaBarang || ''}">
+                <input type="number" id="jumlah" required placeholder="Jumlah" value="${item?.jumlah || ''}">
+                <input type="text" id="satuan" required placeholder="Satuan" value="${item?.satuan || ''}">
+                <input type="text" id="user" required placeholder="User" value="${item?.user || ''}">
+                <input type="text" id="pic" required placeholder="PIC" value="${item?.pic || ''}">
+                <button id="saveBtn">Simpan</button></div>`;
+        }
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.style.display = 'flex';
+        modal.innerHTML = html;
+        document.body.appendChild(modal);
+        modal.querySelector('.close').onclick = () => modal.remove();
+        modal.querySelector('#saveBtn').onclick = () => { saveModal(modal); };
+    }
+
+    function saveModal(modal) {
+        const get = (id) => document.getElementById(id)?.value;
+        if (currentFormType === 'masuk') {
+            const item = { tanggal: get('tanggal'), jam: get('jam'), namaBarang: get('namaBarang'), supplier: get('supplier'), noPo: get('noPo'), noSj: get('noSj'), jumlah: parseInt(get('jumlah')), satuan: get('satuan'), keterangan: get('keterangan'), pic: get('pic') };
+            if (editId) { item.id = editId; const items = getBarangMasuk(); const idx = items.findIndex(i => i.id === editId); items[idx] = item; saveBarangMasuk(items); }
+            else { item.id = generateId(getBarangMasuk()); saveBarangMasuk([...getBarangMasuk(), item]); }
+        } else if (currentFormType === 'keluar') {
+            const item = { tanggal: get('tanggal'), jam: get('jam'), namaBarang: get('namaBarang'), ekspedisi: get('ekspedisi'), jumlah: parseInt(get('jumlah')), satuan: get('satuan'), keterangan: get('keterangan'), user: get('user'), pic: get('pic') };
+            if (editId) { item.id = editId; const items = getBarangKeluar(); const idx = items.findIndex(i => i.id === editId); items[idx] = item; saveBarangKeluar(items); }
+            else { item.id = generateId(getBarangKeluar()); saveBarangKeluar([...getBarangKeluar(), item]); }
+        } else {
+            const item = { tanggal: get('tanggal'), namaBarang: get('namaBarang'), jumlah: parseInt(get('jumlah')), satuan: get('satuan'), user: get('user'), pic: get('pic') };
+            if (editId) { item.id = editId; const items = getKonsumabel(); const idx = items.findIndex(i => i.id === editId); items[idx] = item; saveKonsumabel(items); }
+            else { item.id = generateId(getKonsumabel()); saveKonsumabel([...getKonsumabel(), item]); }
+        }
+        modal.remove();
+        render();
+    }
+
+    window.editBarangMasuk = (id) => { const item = getBarangMasuk().find(i => i.id === id); if(item) showModal('masuk', item); };
+    window.deleteBarangMasuk = (id) => { if(confirm('Hapus?')){ saveBarangMasuk(getBarangMasuk().filter(i => i.id !== id)); render(); } };
+    window.editBarangKeluar = (id) => { const item = getBarangKeluar().find(i => i.id === id); if(item) showModal('keluar', item); };
+    window.deleteBarangKeluar = (id) => { if(confirm('Hapus?')){ saveBarangKeluar(getBarangKeluar().filter(i => i.id !== id)); render(); } };
+    window.editKonsumabel = (id) => { const item = getKonsumabel().find(i => i.id === id); if(item) showModal('konsumabel', item); };
+    window.deleteKonsumabel = (id) => { if(confirm('Hapus?')){ saveKonsumabel(getKonsumabel().filter(i => i.id !== id)); render(); } };
+
+    window.toggleSidebar = toggleSidebar;
+    window.closeSidebar = closeSidebar;
+    window.navigateTo = navigateTo;
+    window.applyPreset = applyPreset;
+
+    // ==================== INIT ====================
+    initData();
+    applyTheme();
+    applyDarkMode();
+    
+    const splash = document.createElement('div');
+    splash.className = 'splash-screen';
+    splash.innerHTML = '<div class="splash-content"><h1>📦 Inventory App</h1><p>Sistem Manajemen Barang</p><div class="loader"></div></div>';
+    document.body.appendChild(splash);
+    setTimeout(() => { splash.remove(); render(); }, 1500);
+</script>
+</body>
+</html>
