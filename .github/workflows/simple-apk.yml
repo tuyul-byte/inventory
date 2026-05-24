@@ -1,0 +1,37 @@
+name: Simple APK Builder
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Create APK with webview
+        run: |
+          # Buat struktur folder Android minimal
+          mkdir -p app/src/main/assets/
+          cp index.html app/src/main/assets/
+          
+          # Buat manifest
+          cat > app/src/main/AndroidManifest.xml << 'EOF'
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.myapp">
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <application android:label="MyApp">
+        <activity android:name=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
+EOF
+          
+      - name: Upload sebagai artifact saja
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-code
+          path: index.html
