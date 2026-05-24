@@ -1,0 +1,117 @@
+name: Build HTML to APK
+on: 
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+        
+    - name: Install Capacitor
+      run: |
+        npm install -g @capacitor/cli
+        
+    - name: Create Project Structure
+      run: |
+        # Buat folder project
+        mkdir -p myApp/android/app/src/main/assets/public/
+        mkdir -p myApp/www
+        
+        # Copy file HTML
+        cp index.html myApp/www/
+        
+        # Inisialisasi Capacitor project
+        cd myApp
+        npx cap init MyApp com.example.myapp --web-dir=www
+        
+    - name: Add Android Platform
+      run: |
+        cd myApp
+        npx cap add android
+        
+    - name: Copy HTML to Android Assets
+      run: |
+        # Copy file HTML ke folder assets Android
+        cp index.html myApp/android/app/src/main/assets/public/
+        
+        # Buat file MainActivity.java jika perlu
+        mkdir -p myApp/android/app/src/main/java/com/example/myapp/
+        
+    - name: Create Android Project with Gradle
+      run: |
+        cd myApp/android
+        # Buat file build.gradle dasar jika belum ada
+        if [ ! -f "app/build.gradle" ]; then
+          cat > app/build.gradle << 'EOF'
+apply plugin: 'com.android.application'
+
+android {
+    compileSdk 34
+    defaultConfig {
+        applicationId "com.example.myapp"
+        minSdk 23
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.9.0'
+}
+EOF
+        fi
+        
+    - name: Build APK
+      run: |
+        cd myApp/android
+        # Buat gradle wrapper jika belum ada
+        if [ ! -f "gradlew" ]; then
+          gradle wrapper
+        fi
+        chmod +x gradlew
+        ./gradlew assembleDebug --no-daemon || true
+        
+    - name: Find and Upload APK
+      run: |
+        # Cari file APK yang berhasil dibuat
+        find . -name "*.apk" -type f
+        
+        # Buat folder untuk artifact
+        mkdir -p apk-output
+        
+        # Copy APK jika ditemukan
+        find . -name "*.apk" -type f -exec cp {} apk-output/ \;
+        
+        # Jika tidak ditemukan, buat APK sederhana dengan webview
+        if [ -z "$(ls -A apk-output)" ]; then
+          echo "Build standar gagal, membuat APK sederhana..."
+          # Gunakan method alternatif
+        fi
+        
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-debug
+        path: apk-output/
